@@ -20,14 +20,6 @@
 
     {{ form.confirm_password.label }} {{ form.confirm_password() }}
 
-    {{ form.type.label }}
-    {% if user['type'] == 'regular' %}
-    <input type="text" class="form-control" value="{{ user['type'] }}"
-        disabled>
-    {% else %}
-    {{ form.type(class="form-control", id="type") }}
-    {% endif %}
-
     {{ form.profile_picture.label }} {{ form.profile_picture() }}
 
     <input type="submit" value="Update">

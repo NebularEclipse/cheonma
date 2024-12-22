@@ -51,9 +51,11 @@
                 </ul>
                 <div class="account-info">
                     <div class="account-info-picture">
+                        {% if profile_picture %}
                         <img
                             src="{{ url_for('uploaded_file', filename=profile_picture) }}"
                             alt="Account">
+                        {% endif %}
                     </div>
                     <div class="account-info-name">{{ user['first_name'] }} {{
                         user[last_name] }}</div>

@@ -25,7 +25,9 @@
     </div>
         <main>
             <section class="top-card">
+                {% if profile_picture %}
                 <img src="{{ url_for('uploaded_file', filename=profile_picture) }}" alt="user picture">
+                {% endif %}
                 <div class="menu-icon">
                     <div class="menu item1"></div>
                     <div class="menu item2"></div>

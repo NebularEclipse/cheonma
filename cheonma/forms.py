@@ -26,5 +26,4 @@ class UpdateUserForm(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=6)])
     confirm_password = PasswordField("Confirm Password", validators=[DataRequired()])
-    type = SelectField("Type", choices=[("admin", "Admin"), ("regular", "Regular")])
     profile_picture = FileField("Profile Picture")

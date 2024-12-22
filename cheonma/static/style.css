@@ -163,7 +163,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.account-info-more {
+p.account-info-more {
   color: var(--sidebar-main-color);
   padding: 0;
   border: none;

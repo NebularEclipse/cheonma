@@ -87,7 +87,7 @@ def register():
         except db.IntegrityError:
             error = f"User {username} is already registered."
         else:
-            return redirect(url_for("index"))
+            return redirect(url_for("dashboard.users"))
 
         flash(error)
 
@@ -129,7 +129,6 @@ def update_user(id):
         email = form.email.data
         password = form.password.data
         confirm_password = form.confirm_password.data
-        type = form.type.data
         profile_picture = form.profile_picture.data
         db = get_db()
 
@@ -163,8 +162,8 @@ def update_user(id):
                 else:
                     flash("Invalid file type. Only JPG, JPEG, and PNG are allowed.")
             db.execute(
-                "UPDATE user SET username = ?, password = ?, type = ?" " WHERE id = ?",
-                (username, generate_password_hash(password), type, id),
+                "UPDATE user SET username = ?, password = ?" " WHERE id = ?",
+                (username, generate_password_hash(password), id),
             )
             db.commit()
         except:
