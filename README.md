@@ -14,6 +14,11 @@ Activate the virtual environment (Windows)
 $ ./venv/Scripts/activate
 ```
 
+Install requirements
+```
+$ pip install -r requirements.txt
+```
+
 Initialize the database
 ```
 $ flask --app cheonma init-db
