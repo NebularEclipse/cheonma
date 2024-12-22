@@ -17,5 +17,6 @@ CREATE TABLE
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL
+        email TEXT UNIQUE NOT NULL,
+        profile_picture TEXT
     );

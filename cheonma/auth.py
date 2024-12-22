@@ -1,6 +1,7 @@
 import click
 import functools
 import getpass
+import os
 
 from flask import (
     Blueprint,
@@ -11,14 +12,21 @@ from flask import (
     request,
     session,
     url_for,
+    current_app
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import abort
+from werkzeug.utils import secure_filename
+
+import uuid
 
 from cheonma.db import get_db
+from cheonma.forms import RegisterForm, LoginForm, UpdateUserForm
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
 def login_required(view):
     @functools.wraps(view)
@@ -46,56 +54,44 @@ def admin_required(view):
 @login_required
 @admin_required
 def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        first_name = request.form["first_name"]
-        last_name = request.form["last_name"]
-        email = request.form["email"]
-        password = request.form["password"]
-        confirm_password = request.form["confirm_password"]
-        type = request.form["type"]
+    form = RegisterForm()
+
+    if form.validate_on_submit():
+        username = form.username.data
+        first_name = form.first_name.data
+        last_name = form.last_name.data
+        email = form.email.data
+        password = form.password.data
+        confirm_password = form.confirm_password.data
+        type = form.type.data
         db = get_db()
-        error = None
 
-        if not username:
-            error = "Username is required."
-        elif not password:
-            error = "Password is required."
-        elif not confirm_password:
-            error = "Please confirm password."
-        elif password != confirm_password:
-            error = "Passwords don't match."
-        elif not first_name:
-            error = "First Name is required."
-        elif not last_name:
-            error = "Last Name is required."
-        elif not email:
-            error = "Email is required."
+        if password != confirm_password:
+            flash("Passwords don't match.")
+            return redirect(url_for("auth.register"))
 
-        if error is None:
-            try:
-                db.execute("BEGIN TRANSACTION")
-                db.execute(
-                    "INSERT INTO info (first_name, last_name, email)"
-                    " VALUES (?, ?, ?)",
-                    (first_name, last_name, email),
-                )
-                info_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-                db.execute(
-                    "INSERT INTO user (info_id, username, password, type)"
-                    " VALUES (?, ?, ?, ?)",
-                    (info_id, username, generate_password_hash(password), type),
-                )
-                db.commit()
-                db.rollback()
-            except db.IntegrityError:
-                error = f"User {username} is already registered."
-            else:
-                return redirect(url_for("index"))
+        try:
+            db.execute("BEGIN TRANSACTION")
+            db.execute(
+                "INSERT INTO info (first_name, last_name, email)" " VALUES (?, ?, ?)",
+                (first_name, last_name, email),
+            )
+            info_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+            db.execute(
+                "INSERT INTO user (info_id, username, password, type)"
+                " VALUES (?, ?, ?, ?)",
+                (info_id, username, generate_password_hash(password), type),
+            )
+            db.commit()
+            db.rollback()
+        except db.IntegrityError:
+            error = f"User {username} is already registered."
+        else:
+            return redirect(url_for("index"))
 
         flash(error)
 
-    return render_template("auth/register.html")
+    return render_template("auth/register.html", form=form)
 
 
 def get_user(id, check_type=True):
@@ -113,7 +109,7 @@ def get_user(id, check_type=True):
     if user is None:
         abort(404, f"User id {id} doesn't exist.")
 
-    if check_type and user['id'] != g.user["id"]:
+    if check_type and user["id"] != g.user["id"]:
         abort(403)
 
     return user
@@ -124,61 +120,70 @@ def get_user(id, check_type=True):
 def update_user(id):
     user = get_user(id)
 
-    if request.method == "POST":
-        username = request.form["username"]
-        first_name = request.form["first_name"]
-        last_name = request.form["last_name"]
-        email = request.form["email"]
-        password = request.form["password"]
-        confirm_password = request.form["confirm_password"]
-        type = request.form["type"]
-        error = None
+    form = UpdateUserForm(obj=user)
 
-        if not username:
-            error = "Username is required."
-        elif not password:
-            error = "Password is required."
-        elif not confirm_password:
-            error = "Please confirm password."
-        elif password != confirm_password:
-            error = "Passwords don't match."
-        elif not first_name:
-            error = "First Name is required."
-        elif not last_name:
-            error = "Last Name is required."
-        elif not email:
-            error = "Email is required."
+    if form.validate_on_submit():
+        username = form.username.data
+        first_name = form.first_name.data
+        last_name = form.last_name.data
+        email = form.email.data
+        password = form.password.data
+        confirm_password = form.confirm_password.data
+        type = form.type.data
+        profile_picture = form.profile_picture.data
+        db = get_db()
 
-        if error is not None:
-            flash(error)
-        else:
-            try:
-                db = get_db()
-                db.execute("BEGIN TRANSACTION")
-                db.execute(
-                    "UPDATE info SET first_name = ?, last_name = ?, email = ?"
-                    " WHERE id = ?",
-                    (first_name, last_name, email, user["info_id"]),
-                )
-                db.execute(
-                    "UPDATE user SET username = ?, password = ?, type = ?"
-                    " WHERE id = ?",
-                    (username, password, type, id),
-                )
-                db.commit()
-                db.rollback()
-            except:
-                pass
-            return redirect(url_for("dashboard.index"))
+        if password != confirm_password:
+            flash("Passwords don't match.")
+            return redirect(url_for("auth.register"))
 
-    return render_template("auth/update_user.html", user=user)
+        try:
+            db = get_db()
+            db.execute("BEGIN TRANSACTION")
+            db.execute(
+                "UPDATE info SET first_name = ?, last_name = ?, email = ?"
+                " WHERE id = ?",
+                (first_name, last_name, email, user["info_id"]),
+            )
+            if profile_picture:
+                if allowed_file(profile_picture.filename):
+                    filename = secure_filename(profile_picture.filename)
+                    # Prepend uuid to filename to avoid filename conflicts
+                    filename = str(uuid.uuid1()) + "_" + filename
+                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+
+                    # Save the uploaded profile picture
+                    profile_picture.save(file_path)
+
+                    # Update the database with the new profile picture filename
+                    db.execute(
+                        "UPDATE info SET profile_picture = ? WHERE id = ?",
+                        (filename, user['info_id'])
+                    )
+                else:
+                    flash("Invalid file type. Only JPG, JPEG, and PNG are allowed.")
+            db.execute(
+                "UPDATE user SET username = ?, password = ?, type = ?" " WHERE id = ?",
+                (username, generate_password_hash(password), type, id),
+            )
+            db.commit()
+        except:
+            db.rollback()
+        return redirect(url_for("dashboard.index"))
+
+    return render_template("auth/update_user.html", user=user, form=form)
 
 
 @bp.route("/<int:id>/delete_user", methods=("GET", "POST"))
 @login_required
 @admin_required
 def delete_user(id):
-    user = get_user(id)
+    if g.user['type'] == "admin":
+        check_type = False
+    else:
+        check_type = True
+
+    user = get_user(id, check_type)
     try:
         db = get_db()
         db.execute("DELETE FROM info WHERE id = ?", (user["info_id"],))
@@ -192,11 +197,14 @@ def delete_user(id):
 
 @bp.route("/login", methods=("GET", "POST"))
 def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+    form = LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+
         db = get_db()
         error = None
+
         user = db.execute(
             "SELECT * FROM user WHERE username = ?", (username,)
         ).fetchone()
@@ -213,7 +221,7 @@ def login():
 
         flash(error)
 
-    return render_template("auth/login.html")
+    return render_template("auth/login.html", form=form)
 
 
 @bp.before_app_request

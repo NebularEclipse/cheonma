@@ -1,31 +1,61 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/dashboard.html' %}
 
-{% block header %}
-<h1>{% block title %}Dashboard{% endblock %}</h1>
-{% if g.user['type'] == "admin" %}
-<a class="action" href="{{ url_for('auth.register') }}">Register User</a>
-{% endif %}
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 {% endblock %}
 
-{% block content %}
-{% if g.user['type'] == "admin" %}
-{% for user in users %}
-<article class="user">
-    <header>
-        <div>
-            <h1>{{ user['first_name'] }} {{ user['last_name'] }}</h1>
-            <div class="about">{{ user['username'] }} {{ user['email'] }} {{
-                user['type'] }}</div>
-        </div>
-        <hr>
-        <a class="danger action"
-            href="{{ url_for('auth.delete_user', id=user['id']) }}"
-            onclick="return confirm('Are you sure?');">Delete</a>
-    </header>
-</article>
-{% if not loop.last %}
-<hr>
-{% endif %}
-{% endfor %}
-{% endif %}
+{% block app_content %}
+<div class="app-content">
+    <div class="app-content-header">
+        <h1 class="app-content-headerText">{% block title %}Dashboard{% endblock
+            %}</h1>
+        <button class="mode-switch" title="Switch Theme">
+            <svg class="moon" fill="none" stroke="currentColor"
+                stroke-linecap="round" stroke-linejoin="round"
+                stroke-width="2" width="24" height="24"
+                viewBox="0 0 24 24">
+                <defs></defs>
+                <path
+                    d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+            </svg>
+        </button>
+        <button class="app-content-headerButton"><a
+                href="{{ url_for('auth.logout') }}">Log Out</a></button>
+    </div>
+        <main>
+            <section class="top-card">
+                <img src="{{ url_for('uploaded_file', filename=profile_picture) }}" alt="user picture">
+                <div class="menu-icon">
+                    <div class="menu item1"></div>
+                    <div class="menu item2"></div>
+                </div>
+                
+            </section>
+        
+            <section class="middle-card">
+                <h1>{{ user['type'] }}</h1>
+                <p>{{ user['first_name'] }} {{ user['last_name'] }}</p>
+                <h1>{{ user['username'] }}</h1>
+                <p>{{ user['email'] }}</p>
+            </section>
+        
+            <footer><a href="{{ url_for('auth.update_user', id=user['id']) }}">Update Profile</a></footer>
+        </main>
+        <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+        <script>
+            AOS.init({offset:0});
+        </script>
+        <script>
+            function hamburg(){
+                const navbar = document.querySelector(".dropdown")
+                navbar.style.transform = "translateY(0px)"
+            }
+            function cancel(){
+                const navbar = document.querySelector(".dropdown")
+                navbar.style.transform = "translateY(-500px)"
+            }
+        </script>
+    </div>
+</div>
 {% endblock %}
